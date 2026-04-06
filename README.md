@@ -8,7 +8,7 @@
 
 **Live Demo:** [lalith-dabilpuram-vehicle-damage-detection.streamlit.app](https://lalith-dabilpuram-vehicle-damage-detection.streamlit.app/)
 
-## Screenshots
+## Screensh
 
 ![Home Page](/app_screenshot_1.png)
 ![Prediction Result](app_screenshot_2.png)
