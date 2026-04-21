@@ -188,7 +188,7 @@ elif input_method == "Use Webcam":
         image_source = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
 if image_source is not None:
-    st.image(image_source, caption="Uploaded Image", width=500)
+    col1, col2 = st.columns(2)
 
     yolo_session, yolo_err = load_yolo_session()
     if yolo_err:
@@ -197,7 +197,10 @@ if image_source is not None:
         try:
             with st.spinner("Running damage detection..."):
                 annotated, detected = run_yolo(yolo_session, image_source)
-            st.image(annotated, caption="Detected Damage (YOLOv8)", width=500)
+            with col1:
+                st.image(image_source, caption="Original Image", use_container_width=True)
+            with col2:
+                st.image(annotated, caption="Detected Damage (YOLOv8)", use_container_width=True)
             if not detected:
                 st.info("No specific damage regions detected.")
         except Exception as e:
