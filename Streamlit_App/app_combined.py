@@ -168,8 +168,8 @@ def run_yolo(session, image):
 # --- Streamlit UI ---
 
 st.set_page_config(page_title="Vehicle Damage Detection", page_icon="🚗", layout="wide")
-st.title("Vehicle Damage Detection")
-st.write("Upload an image or use your webcam to detect damage.")
+st.markdown("<h1 style='text-align: center;'>Vehicle Damage Detection</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Upload an image or use your webcam to detect damage.</p>", unsafe_allow_html=True)
 
 input_method = st.radio("Choose input method:", ("Upload Image", "Use Webcam"))
 
@@ -188,7 +188,7 @@ elif input_method == "Use Webcam":
         image_source = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
 if image_source is not None:
-    st.image(image_source, caption="Uploaded Image", use_container_width=True)
+    st.image(image_source, caption="Uploaded Image", width=500)
 
     yolo_session, yolo_err = load_yolo_session()
     if yolo_err:
@@ -197,7 +197,7 @@ if image_source is not None:
         try:
             with st.spinner("Running damage detection..."):
                 annotated, detected = run_yolo(yolo_session, image_source)
-            st.image(annotated, caption="Detected Damage (YOLOv8)", use_container_width=True)
+            st.image(annotated, caption="Detected Damage (YOLOv8)", width=500)
             if not detected:
                 st.info("No specific damage regions detected.")
         except Exception as e:
