@@ -10,8 +10,8 @@
 
 ## Screenshots
 
-![Home Page](/app_screenshot_1.png)
-![Prediction Result](app_screenshot_2.png)
+![Home Page](/app_screenshot_3.png)
+![Prediction Result](app_screenshot_4.png)
 
 ---
 
