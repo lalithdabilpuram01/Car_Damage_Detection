@@ -95,7 +95,7 @@ input_method = st.radio("Choose input method:", ("Upload Image", "Use Webcam"))
 
 image_source = None
 # save to a temp file so ResNet can read it from disk
-temp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp_combined.jpg")
+temp_path = "/tmp/temp_combined.jpg"
 
 if input_method == "Upload Image":
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
