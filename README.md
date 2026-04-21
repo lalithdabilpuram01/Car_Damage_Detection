@@ -8,7 +8,7 @@
 
 **Live Demo:** [lalith-dabilpuram-vehicle-damage-detection.streamlit.app](https://lalith-dabilpuram-vehicle-damage-detection.streamlit.app/)
 
-## Screensh
+## Screenshots
 
 ![Home Page](/app_screenshot_1.png)
 ![Prediction Result](app_screenshot_2.png)
@@ -17,7 +17,12 @@
 
 ## Overview
 
-This repository contains an end-to-end computer vision pipeline designed to automate the vehicle inspection process for Vroom Car Rentals. The system replaces subjective, manual inspections with an objective deep learning model that identifies and classifies exterior vehicle damage in real-time, delivering consistent and transparent results at scale.
+This repository contains an end-to-end computer vision pipeline designed to automate the vehicle inspection process for Vroom Car Rentals. The system replaces subjective, manual inspections with an objective deep learning pipeline that identifies and classifies exterior vehicle damage in real-time, delivering consistent and transparent results at scale.
+
+The app runs two models in parallel on a single uploaded image:
+
+- **ResNet-50** classifies the overall damage category (e.g. Front Crushed, Rear Breakage)
+- **YOLOv8 (ONNX)** draws bounding boxes around the specific damaged components
 
 ---
 
@@ -29,28 +34,32 @@ Vroom Car Rentals requires a scalable method to assess vehicle condition upon re
 
 ## Technical Approach
 
-### Transfer Learning on ImageNet
-The system is built on a ResNet-50 backbone pre-trained on ImageNet. This provides a strong visual feature foundation — understanding edges, textures, and structural shapes — which is then fine-tuned to detect domain-specific automotive damage such as panel crushing, glass breakage, and surface deformation.
+### Model 1 — ResNet-50 (Damage Classification)
 
-### Architecture: Fine-Tuned ResNet-50
-- All convolutional layers are frozen except `layer4` and the fully connected head
-- The classifier head is replaced with a custom `Dropout + Linear` layer for 6-class output
-- Training uses cross-entropy loss with Adam optimizer
+Built on a ResNet-50 backbone pre-trained on ImageNet, fine-tuned to classify the overall type and location of vehicle damage.
 
-### Classification Categories
-The model classifies vehicle damage into six categories:
+- All convolutional layers frozen except `layer4` and the fully connected head
+- Custom `Dropout + Linear` head for 6-class output
+- Trained with cross-entropy loss and Adam optimizer
+
+**Classification categories:**
 
 | Label | Description |
 |---|---|
-| Front Normal | No damage detected at the front |
+| Front Normal | No damage at the front |
 | Front Breakage | Glass or structural breakage at the front |
 | Front Crushed | Structural crushing at the front |
-| Rear Normal | No damage detected at the rear |
+| Rear Normal | No damage at the rear |
 | Rear Breakage | Glass or structural breakage at the rear |
 | Rear Crushed | Structural crushing at the rear |
 
-### Deployment
-The trained model is served through a Streamlit web application, allowing rental agents to upload a vehicle image and receive an instant damage classification. The app is deployed on Streamlit Cloud and accessible via the link above.
+### Model 2 — YOLOv8 (Damage Localisation)
+
+A YOLOv8 object detection model exported to ONNX format that draws bounding boxes around 22 specific damage types on the vehicle surface. Inference runs directly via `onnxruntime` — no OpenCV or Ultralytics dependency required at runtime.
+
+**Detectable damage types include:**
+
+`front-bumper-dent` · `front-bumper-scratch` · `bonnet-dent` · `fender-dent` · `doorouter-dent` · `doorouter-scratch` · `Headlight-Damage` · `Taillight-Damage` · `Sidemirror-Damage` · `roof-dent` · `paint-chip` · `paint-trace` · `rear-bumper-dent` · `rear-bumper-scratch` · `Major-Rear-Bumper-Dent` · `quaterpanel-dent` · `pillar-dent` · `medium-Bodypanel-Dent` · `RunningBoard-Dent` · `Signlight-Damage` · `Front-Windscreen-Damage` · `Rear-windscreen-Damage`
 
 ---
 
@@ -59,11 +68,13 @@ The trained model is served through a Streamlit web application, allowing rental
 ```
 Car_Damage_Detection/
 ├── Streamlit_App/
-│   ├── app.py                  # Streamlit frontend
-│   ├── model_helper.py         # Inference logic
-│   ├── requirements.txt        # Dependencies
+│   ├── app_combined.py         # Main Streamlit app (ResNet + YOLO)
+│   ├── model_helper.py         # Legacy inference helper
+│   ├── best.onnx               # YOLOv8 ONNX weights
+│   ├── packages.txt            # System-level apt dependencies
+│   ├── requirements.txt        # Python dependencies
 │   └── model/
-│       └── saved_model_Car_Damage_Detection.pth
+│       └── saved_model_Car_Damage_Detection.pth  # ResNet-50 weights
 ├── training/
 │   └── training_notebook.ipynb # Model training pipeline
 └── README.md
@@ -75,50 +86,61 @@ Car_Damage_Detection/
 
 | Component | Technology |
 |---|---|
-| Deep Learning Framework | PyTorch 2.5.1 |
-| Model Architecture | ResNet-50 (Transfer Learning) |
-| Image Processing | Torchvision, Pillow |
-| Web Application | Streamlit |
+| Classification Model | ResNet-50 (PyTorch 2.5.1, Transfer Learning) |
+| Detection Model | YOLOv8 (ONNX, onnxruntime) |
+| Image Processing | Pillow, NumPy |
+| Web Application | Streamlit 1.40 |
 | Deployment | Streamlit Cloud |
 | Language | Python 3.12 |
 
 ---
 
+## Running Locally
+
+```bash
+cd Streamlit_App
+pip install -r requirements.txt
+streamlit run app_combined.py
+```
+
+---
+
 ## Future Direction: LLM-Powered Damage Analysis
 
-The current system classifies damage into broad categories. The next evolution of this project is to integrate a Large Language Model (LLM) — such as GPT-4 Vision or a fine-tuned multimodal model — to move beyond classification and into detailed natural language damage reporting.
+The current system classifies and localises damage visually. The next evolution is to integrate a multimodal LLM — such as GPT-4o or a fine-tuned vision model — to generate detailed natural language damage reports.
 
-The planned pipeline works as follows: the ResNet model first identifies the region and type of damage, and this output is then passed as structured context to an LLM. The LLM analyzes the image alongside the classification result to generate a detailed, human-readable damage report describing the specific nature of the damage — for example, distinguishing between a minor paint scuff, a cracked bumper, or a buckled hood panel.
+The planned pipeline: ResNet identifies the damage category → YOLO pinpoints affected components → structured output is passed to an LLM → the LLM produces a human-readable report describing the specific nature and severity of the damage.
 
-This approach combines the speed and precision of a fine-tuned CNN with the reasoning and language capabilities of a modern LLM, producing reports that are both technically accurate and immediately actionable for non-technical staff.
+This combines the speed and precision of fine-tuned CNNs with the reasoning capability of modern LLMs, producing reports that are technically accurate and immediately actionable for non-technical staff.
 
 ---
 
 ## Insurance Industry Application
 
-This system has direct and significant applications in the automotive insurance sector. Insurance companies currently rely on manual assessments by field adjusters to evaluate vehicle damage and determine claim payouts — a process that is slow, expensive, and prone to inconsistency.
+This system has direct applications in the automotive insurance sector. Insurance companies currently rely on manual field assessments — a process that is slow, expensive, and inconsistent.
 
-By integrating this computer vision pipeline with an LLM-based reporting layer, insurers could automate the end-to-end claims workflow:
+An integrated pipeline would allow:
 
-- A customer submits photos of their damaged vehicle through a mobile app or web portal
-- The computer vision model instantly classifies the type and location of the damage
-- The LLM generates a structured damage report with granular details about the affected components
-- Based on the damage report, a trained prediction model estimates the repair cost and recommends an appropriate insurance claim amount
-- The entire assessment is completed in seconds, without requiring a physical inspection
+- Customer submits vehicle photos via mobile app or web portal
+- Computer vision model classifies damage type and localises affected components
+- LLM generates a structured damage report with component-level detail
+- A cost estimation model recommends a repair cost and claim amount
+- The full assessment completes in seconds, without a physical inspection
 
-This would dramatically reduce claim processing time, lower operational costs, eliminate adjuster bias, and provide customers with faster, more transparent outcomes. For high-volume insurers processing thousands of claims daily, this pipeline represents a meaningful step toward fully automated claims adjudication.
+This would reduce claim processing time, lower operational costs, eliminate adjuster bias, and deliver faster and more transparent outcomes for customers.
 
 ---
 
 ## Roadmap
 
 - **Phase 1 — Architecture Selection:** ResNet-50 with ImageNet backbone. `Completed`
-- **Phase 2 — Model Training and Refinement:** Fine-tuning on car damage dataset, handling false positives. `Completed`
-- **Phase 3 — Deployment:** Streamlit app deployed to cloud. `Completed`
-- **Phase 4 — Validation:** Testing against real-world rental return scenarios and varying lighting conditions. `In Progress`
-- **Phase 5 — API Integration:** Building a service layer to generate automated damage reports for Vroom's check-in system. `Upcoming`
-- **Phase 6 — LLM Integration:** Connecting a multimodal LLM to generate detailed natural language damage descriptions from model output. `Upcoming`
-- **Phase 7 — Insurance Claim Prediction:** Training a cost estimation model to predict repair costs and automate insurance claim amounts based on damage analysis. `Upcoming`
+- **Phase 2 — Model Training:** Fine-tuning on car damage dataset. `Completed`
+- **Phase 3 — Object Detection:** YOLOv8 trained and exported to ONNX. `Completed`
+- **Phase 4 — Deployment:** Combined ResNet + YOLO app deployed to Streamlit Cloud. `Completed`
+- **Phase 5 — Validation:** Testing against real-world scenarios and varying lighting conditions. `In Progress`
+- **Phase 6 — API Integration:** Service layer for automated damage reports in Vroom's check-in system. `Upcoming`
+- **Phase 7 — LLM Integration:** Multimodal LLM for natural language damage descriptions. `Upcoming`
+- **Phase 8 — Insurance Claim Prediction:** Cost estimation model for automated claim amounts. `Upcoming`
 
 ---
 
