@@ -1,5 +1,6 @@
+import io
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import os
 import numpy as np
 import onnxruntime as ort
@@ -177,27 +178,38 @@ image_source = None
 if input_method == "Upload Image":
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
-        image_source = Image.open(uploaded_file).convert("RGB")
+        # Read bytes explicitly so the file pointer is always at the start
+        image_bytes = uploaded_file.read()
+        image_source = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 elif input_method == "Use Webcam":
     camera_image = st.camera_input("Take a picture")
     if camera_image is not None:
-        image_source = Image.open(camera_image).convert("RGB")
+        image_bytes = camera_image.read()
+        image_source = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
 if image_source is not None:
+    st.image(image_source, caption="Uploaded Image", use_container_width=True)
+
     yolo_session, yolo_err = load_yolo_session()
     if yolo_err:
         st.error(f"Could not load YOLO model: {yolo_err}")
     else:
-        with st.spinner("Running damage detection..."):
-            annotated, detected = run_yolo(yolo_session, image_source)
-        st.image(annotated, caption="Detected Damage (YOLOv8)", use_column_width=True)
-        if not detected:
-            st.info("No specific damage regions detected.")
+        try:
+            with st.spinner("Running damage detection..."):
+                annotated, detected = run_yolo(yolo_session, image_source)
+            st.image(annotated, caption="Detected Damage (YOLOv8)", use_container_width=True)
+            if not detected:
+                st.info("No specific damage regions detected.")
+        except Exception as e:
+            st.error(f"YOLO inference failed: {e}")
 
     resnet, resnet_err = load_resnet_model()
     if resnet_err:
         st.error(f"Could not load ResNet model: {resnet_err}")
     else:
-        with st.spinner("Classifying damage type..."):
-            label = classify_image(resnet, image_source)
-        st.success(f"Damage Type (ResNet50): **{label}**")
+        try:
+            with st.spinner("Classifying damage type..."):
+                label = classify_image(resnet, image_source)
+            st.success(f"Damage Type (ResNet50): **{label}**")
+        except Exception as e:
+            st.error(f"ResNet inference failed: {e}")
