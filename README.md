@@ -146,4 +146,4 @@ This would reduce claim processing time, lower operational costs, eliminate adju
 
 ## Contact
 
-For recruiters or collaborators interested in the technical implementation or project progress, please reach out via the contact information on my [GitHub profile](https://github.com/lalithdabilpuram01).
+For recruiters or collaborators interested in the technical implementation or project progress, please reach out via email at lalith.dabilpuram01@gmail.com
